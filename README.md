@@ -41,7 +41,9 @@ Proiectul va fi dezvoltat incremental, trecând de la structura de date la logic
 
 ### Faza 1: Proiectarea Structurii (Baza de Date & Diagrame)
 1. Elaborarea diagramei **ERD** (Entity Relationship Diagram) pentru definirea cheilor primare/străine din cele 8 tabele specificate în brief.
+[!Diagrama ERD](./diagrams/ERD_Diagram.png)
 2. Construirea diagramei de arhitectură solicitată: Flask API + Spark job + PostgreSQL + React.
+[!Diagrama Arhitectura](./diagrams/Architecture_Diagram.png)
 
 ### Faza 2: Infrastructura Backend (REST API de bază)
 1. Inițializarea proiectului Python și structurarea pe **Blueprints** (auth, services, bookings, reviews, recommendations).
