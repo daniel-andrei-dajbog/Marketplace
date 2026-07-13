@@ -9,7 +9,7 @@ Proiect realizat în cadrul stagiului de practică **BMadlen 071727 SRL**.
 
 ---
 
-## 🧠 Concepte Teoretice de Bază & Rolul Tehnologiilor
+##  Concepte Teoretice de Bază & Rolul Tehnologiilor
 
 Pentru implementarea acestui sistem, utilizăm un stack tehnologic hibrid care acoperă dezvoltarea web tradițională și ingineria datelor.
 
@@ -35,7 +35,7 @@ Pentru implementarea acestui sistem, utilizăm un stack tehnologic hibrid care a
 
 ---
 
-## 🗺️ Pașii Logici de Implementare a Aplicației
+##  Pașii Logici de Implementare a Aplicației
 
 Proiectul va fi dezvoltat incremental, trecând de la structura de date la logica de business și, în final, la analiza de date:
 
