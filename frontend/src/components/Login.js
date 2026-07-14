@@ -25,6 +25,7 @@ function Login({ onNavigate, onLoginSuccess }) {
         localStorage.setItem('role', data.role);
         
         if (onLoginSuccess) onLoginSuccess(data.role);
+
       } else {
         setMessage(`Eroare: ${data.error}`);
       }

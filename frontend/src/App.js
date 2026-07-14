@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Login from './components/Login';
 import Signup from './components/Signup';
+import CreateProfile from './components/CreateProfile';
+import Marketplace from './marketplace/Marketplace';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('login');
@@ -8,7 +10,7 @@ function App() {
 
   const handleLoginSuccess = (role) => {
     setUserRole(role);
-    setCurrentPage('dashboard');
+    setCurrentPage('marketplace');
   };
 
   const handleLogout = () => {
@@ -16,6 +18,32 @@ function App() {
     localStorage.removeItem('role');
     setCurrentPage('login');
   };
+
+  useEffect(() => {
+    const checkProviderProfile = async () => {
+      const token = localStorage.getItem('token');
+      const role = localStorage.getItem('role');
+
+      if (currentPage === 'marketplace' && role === 'provider') {
+        try {
+          const response = await fetch('http://127.0.0.1:5000/api/provider/me', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.status === 404) {
+            setCurrentPage('create_profile');
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    };
+
+    checkProviderProfile();
+  }, [currentPage, userRole]);
 
   return (
     <div>
@@ -27,15 +55,12 @@ function App() {
         <Signup onNavigate={setCurrentPage} />
       )}
 
-      {currentPage === 'dashboard' && (
-        <div style={{ padding: '40px', textAlign: 'center', fontFamily: 'Arial' }}>
-          <h1>Dashboard SPA Marketplace</h1>
-          <p>Te-ai conectat cu succes ca <strong>{userRole.toUpperCase()}</strong>!</p>
-          <p style={{ color: 'green' }}>Autentificarea Stateless prin JWT a fost validată de Backend.</p>
-          <button onClick={handleLogout} style={{ padding: '10px 20px', background: '#DC3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '20px' }}>
-            Deconectare
-          </button>
-        </div>
+      {currentPage === 'create_profile' && (
+        <CreateProfile onNavigate={setCurrentPage} />
+      )}
+
+      {currentPage === 'marketplace' && (
+        <Marketplace onLogout={handleLogout} />
       )}
     </div>
   );

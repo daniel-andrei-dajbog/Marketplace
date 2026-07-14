@@ -20,6 +20,9 @@ def create_app():
     from app.auth import auth_bp
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
 
+    from app.provider_profiles import provider_bp
+    app.register_blueprint(provider_bp, url_prefix='/api/provider')
+
     with app.app_context():
         db.create_all()
 

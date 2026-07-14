@@ -23,6 +23,7 @@ function Signup({ onNavigate }) {
         setMessage(`Succes: ${data.message} Te poți loga acum.`);
         setEmail('');
         setPassword('');
+
       } else {
         setMessage(`Eroare: ${data.error}`);
       }

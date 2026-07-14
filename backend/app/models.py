@@ -14,3 +14,20 @@ class User(db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+class Provider(db.Model):
+    __tablename__ = 'provider_profiles'
+
+    id = db.Column(db.Integer, primary_key = True)
+    name = db.Column(db.String(120), nullable = False)
+    city = db.Column(db.String(120), nullable = False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable = False, unique = True)
+
+class Service(db.Model):
+    __tablename__ = 'services'
+
+    id = db.Column(db.Integer, primary_key = True)
+    title = db.Column(db.String(100), nullable = False)
+    price = db.Column(db.Float, nullable = False)
+    provider_id = db.Column(db.Integer, db.ForeignKey('provider_profiles.id'), nullable = False)
+    
