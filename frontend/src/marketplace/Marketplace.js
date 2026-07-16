@@ -1,11 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import UpdateProfile from '../components/UpdateProfile';
+import CreateService from '../components/services/CreateService';
+import GetServices from '../components/services/GetServices';
+import UpdateService from '../components/services/UpdateService';
 
 function Marketplace({ onLogout }) {
   const [role, setRole] = useState('');
   const [providerData, setProviderData] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [services, setServices] = useState([]);
+  const [editingService, setEditingService] = useState(null);
+  const [loadingServices, setLoadingServices] = useState(false);
+
+  const fetchServices = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setLoadingServices(true);
+    try {
+      const response = await fetch('http://127.0.0.1:5000/api/services/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setServices(data);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingServices(false);
+    }
+  };
 
   useEffect(() => {
     const userRole = localStorage.getItem('role');
@@ -28,6 +55,8 @@ function Marketplace({ onLogout }) {
           setProviderData(data); 
         })
         .catch((err) => console.error(err));
+
+      fetchServices();
     }
   }, []);
 
@@ -38,6 +67,11 @@ function Marketplace({ onLogout }) {
       oras: newCity
     }));
     setIsEditing(false);
+  };
+
+  const handleServiceUpdated = () => {
+    setEditingService(null);
+    fetchServices();
   };
 
   return (
@@ -92,20 +126,52 @@ function Marketplace({ onLogout }) {
             />
           </div>
         ) : (
-          <div style={styles.welcomeBox}>
-            <h1>Bine ai venit pe Marketplace!</h1>
-            <p>Ești conectat cu rolul de: <strong>{role ? role.toUpperCase() : 'Vizitator'}</strong></p>
-            
-            {role === 'provider' && providerData && (
-              <div style={styles.infoCard}>
-                <h3>Profilul tău de furnizor activează în:</h3>
-                <p><strong>Nume Brand:</strong> {providerData.nume}</p>
-                <p><strong>Oraș:</strong> {providerData.oras}</p>
-              </div>
-            )}
+          <div>
+            <div style={styles.welcomeBox}>
+              <h1>Bine ai venit pe Marketplace!</h1>
+              <p>Ești conectat cu rolul de: <strong>{role ? role.toUpperCase() : 'Vizitator'}</strong></p>
+              
+              {role === 'provider' && providerData && (
+                <div style={styles.infoCard}>
+                  <h3>Profilul tău de furnizor activează în:</h3>
+                  <p><strong>Nume Brand:</strong> {providerData.nume}</p>
+                  <p><strong>Oraș:</strong> {providerData.oras}</p>
+                </div>
+              )}
 
-            {role === 'client' && (
-              <p style={{ color: '#007BFF' }}>Aici vei vedea în curând lista cu toate serviciile disponibile!</p>
+              {role === 'client' && (
+                <p style={{ color: '#007BFF' }}>Aici vei vedea în curând lista cu toate serviciile disponibile!</p>
+              )}
+            </div>
+
+            {role === 'provider' && (
+              <div style={styles.servicesSection}>
+                <div style={styles.servicesGrid}>
+                  <div style={styles.servicesColumn}>
+                    {editingService ? (
+                      <UpdateService 
+                        service={editingService} 
+                        onServiceUpdated={handleServiceUpdated}
+                        onCancel={() => setEditingService(null)}
+                      />
+                    ) : (
+                      <CreateService onServiceAdded={fetchServices} />
+                    )}
+                  </div>
+
+                  <div style={styles.servicesColumn}>
+                    {loadingServices ? (
+                      <p>Se încarcă serviciile...</p>
+                    ) : (
+                      <GetServices 
+                        services={services} 
+                        onRefresh={fetchServices} 
+                        onEditSelect={(service) => setEditingService(service)}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -126,7 +192,7 @@ const styles = {
     alignItems: 'center',
     padding: '15px 30px',
     backgroundColor: '#343A40',
-    color: '#white',
+    color: 'white',
     boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
   },
   logo: {
@@ -184,7 +250,7 @@ const styles = {
   },
   mainContent: {
     padding: '40px 20px',
-    maxWidth: '800px',
+    maxWidth: '1200px',
     margin: '0 auto'
   },
   welcomeBox: {
@@ -192,7 +258,8 @@ const styles = {
     background: 'white',
     padding: '30px',
     borderRadius: '8px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+    marginBottom: '30px'
   },
   infoCard: {
     marginTop: '20px',
@@ -203,6 +270,23 @@ const styles = {
     textAlign: 'left',
     display: 'inline-block',
     minWidth: '300px'
+  },
+  servicesSection: {
+    marginTop: '30px'
+  },
+  servicesGrid: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '30px',
+    justifyContent: 'space-between'
+  },
+  servicesColumn: {
+    flex: '1 1 450px',
+    minWidth: '320px',
+    backgroundColor: 'white',
+    padding: '20px',
+    borderRadius: '8px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
   }
 };
 
