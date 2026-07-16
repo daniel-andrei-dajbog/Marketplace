@@ -3,6 +3,7 @@ import UpdateProfile from '../components/UpdateProfile';
 import CreateService from '../components/services/CreateService';
 import GetServices from '../components/services/GetServices';
 import UpdateService from '../components/services/UpdateService';
+import GetAllServices from '../components/services/GetAllServices';
 
 function Marketplace({ onLogout }) {
   const [role, setRole] = useState('');
@@ -52,7 +53,7 @@ function Marketplace({ onLogout }) {
           throw new Error('Nu s-a putut încărca profilul.');
         })
         .then((data) => {
-          setProviderData(data); 
+          setProviderData(data);
         })
         .catch((err) => console.error(err));
 
@@ -78,33 +79,33 @@ function Marketplace({ onLogout }) {
     <div style={styles.container}>
       <header style={styles.header}>
         <div style={styles.logo}>Marketplace SPA</div>
-        
+
         <div style={styles.headerRight}>
           {role === 'provider' && providerData ? (
             <div style={styles.profileArea}>
-              <button 
-                onClick={() => setShowDropdown(!showDropdown)} 
+              <button
+                onClick={() => setShowDropdown(!showDropdown)}
                 style={styles.profileButton}
               >
-                 {providerData.nume} ({providerData.oras})
+                {providerData.nume} ({providerData.oras})
               </button>
-              
+
               {showDropdown && (
                 <div style={styles.dropdown}>
-                  <button 
+                  <button
                     onClick={() => {
                       setIsEditing(true);
                       setShowDropdown(false);
-                    }} 
+                    }}
                     style={styles.dropdownItem}
                   >
-                     Actualizare date
+                    Actualizare date
                   </button>
-                  <button 
-                    onClick={onLogout} 
+                  <button
+                    onClick={onLogout}
                     style={{ ...styles.dropdownItem, color: '#DC3545' }}
                   >
-                     Deconectare
+                    Deconectare
                   </button>
                 </div>
               )}
@@ -118,7 +119,7 @@ function Marketplace({ onLogout }) {
       <main style={styles.mainContent}>
         {isEditing ? (
           <div>
-            <UpdateProfile 
+            <UpdateProfile
               currentName={providerData?.nume}
               currentCity={providerData?.oras}
               onProfileUpdated={handleProfileUpdated}
@@ -130,7 +131,7 @@ function Marketplace({ onLogout }) {
             <div style={styles.welcomeBox}>
               <h1>Bine ai venit pe Marketplace!</h1>
               <p>Ești conectat cu rolul de: <strong>{role ? role.toUpperCase() : 'Vizitator'}</strong></p>
-              
+
               {role === 'provider' && providerData && (
                 <div style={styles.infoCard}>
                   <h3>Profilul tău de furnizor activează în:</h3>
@@ -139,9 +140,9 @@ function Marketplace({ onLogout }) {
                 </div>
               )}
 
-              {role === 'client' && (
-                <p style={{ color: '#007BFF' }}>Aici vei vedea în curând lista cu toate serviciile disponibile!</p>
-              )}
+              <div style={{ marginTop: '30px', backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <GetAllServices />
+              </div>
             </div>
 
             {role === 'provider' && (
@@ -149,8 +150,8 @@ function Marketplace({ onLogout }) {
                 <div style={styles.servicesGrid}>
                   <div style={styles.servicesColumn}>
                     {editingService ? (
-                      <UpdateService 
-                        service={editingService} 
+                      <UpdateService
+                        service={editingService}
                         onServiceUpdated={handleServiceUpdated}
                         onCancel={() => setEditingService(null)}
                       />
@@ -163,9 +164,9 @@ function Marketplace({ onLogout }) {
                     {loadingServices ? (
                       <p>Se încarcă serviciile...</p>
                     ) : (
-                      <GetServices 
-                        services={services} 
-                        onRefresh={fetchServices} 
+                      <GetServices
+                        services={services}
+                        onRefresh={fetchServices}
                         onEditSelect={(service) => setEditingService(service)}
                       />
                     )}

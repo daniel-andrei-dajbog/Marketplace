@@ -95,3 +95,18 @@ def delete_service(service_id):
     db.session.commit()
 
     return jsonify({'message': 'Serviciul a fost eliminat cu succes'}), 200
+
+@service_bp.route('/all', methods=['GET'])
+@jwt_required()
+def get_all_services():
+    services = Service.query.all()
+    
+    services_list = []
+    for s in services:
+        services_list.append({
+            'id': s.id,
+            'title': s.title,
+            'price': s.price
+        })
+
+    return jsonify(services_list), 200
