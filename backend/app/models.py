@@ -31,3 +31,13 @@ class Service(db.Model):
     price = db.Column(db.Float, nullable = False)
     provider_id = db.Column(db.Integer, db.ForeignKey('provider_profiles.id'), nullable = False)
     
+class Booking(db.Model):
+    __tablename__ = 'bookings'
+
+    id = db.Column(db.Integer, primary_key = True)
+    date = db.Column(db.Date, nullable = False)
+    start_time = db.Column(db.Time, nullable = False)
+    end_time = db.Column(db.Time, nullable = False)
+    status = db.Column(db.String(120), nullable = False)
+    client_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable = False)
+    service_id = db.Column(db.Integer, db.ForeignKey('services.id'), nullable = False)

@@ -4,6 +4,8 @@ import CreateService from '../components/services/CreateService';
 import GetServices from '../components/services/GetServices';
 import UpdateService from '../components/services/UpdateService';
 import GetAllServices from '../components/services/GetAllServices';
+import BookingModal from '../components/BookingModal';
+import DashboardBookings from '../components/DashboardBookings';
 
 function Marketplace({ onLogout }) {
   const [role, setRole] = useState('');
@@ -13,6 +15,8 @@ function Marketplace({ onLogout }) {
   const [services, setServices] = useState([]);
   const [editingService, setEditingService] = useState(null);
   const [loadingServices, setLoadingServices] = useState(false);
+  const [selectedService, setSelectedService] = useState(null);
+  const [showBookingsDashboard, setShowBookingsDashboard] = useState(false);
 
   const fetchServices = async () => {
     const token = localStorage.getItem('token');
@@ -80,6 +84,15 @@ function Marketplace({ onLogout }) {
       <header style={styles.header}>
         <div style={styles.logo}>Marketplace SPA</div>
 
+        <div style={styles.navLinks}>
+          <button
+            onClick={() => setShowBookingsDashboard(!showBookingsDashboard)}
+            style={styles.navButton}
+          >
+            {showBookingsDashboard ? 'Vezi Servicii' : 'Gestionare Rezervări'}
+          </button>
+        </div>
+
         <div style={styles.headerRight}>
           {role === 'provider' && providerData ? (
             <div style={styles.profileArea}>
@@ -126,6 +139,10 @@ function Marketplace({ onLogout }) {
               onCancel={() => setIsEditing(false)}
             />
           </div>
+        ) : showBookingsDashboard ? (
+          <div style={styles.welcomeBox}>
+            <DashboardBookings />
+          </div>
         ) : (
           <div>
             <div style={styles.welcomeBox}>
@@ -141,7 +158,9 @@ function Marketplace({ onLogout }) {
               )}
 
               <div style={{ marginTop: '30px', backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <GetAllServices />
+                <GetAllServices onBookingSelect={(id, title) => setSelectedService({ id, title })}
+                  myServices={services}
+                />
               </div>
             </div>
 
@@ -177,6 +196,14 @@ function Marketplace({ onLogout }) {
           </div>
         )}
       </main>
+
+      {selectedService && (
+        <BookingModal
+          serviceId={selectedService.id}
+          serviceTitle={selectedService.title}
+          onClose={() => setSelectedService(null)}
+        />
+      )}
     </div>
   );
 }
@@ -200,6 +227,20 @@ const styles = {
     fontSize: '20px',
     fontWeight: 'bold',
     color: '#fff'
+  },
+  navLinks: {
+    display: 'flex',
+    gap: '15px'
+  },
+  navButton: {
+    background: '#6C757D',
+    color: 'white',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    fontSize: '14px'
   },
   headerRight: {
     position: 'relative'

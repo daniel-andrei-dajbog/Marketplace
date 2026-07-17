@@ -26,6 +26,9 @@ def create_app():
     from app.services import service_bp
     app.register_blueprint(service_bp, url_prefix='/api/services')
 
+    from app.bookings import booking_bp
+    app.register_blueprint(booking_bp, url_prefix='/api/bookings')
+
     with app.app_context():
         db.create_all()
 

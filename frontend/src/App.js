@@ -7,6 +7,7 @@ import Marketplace from './marketplace/Marketplace';
 function App() {
   const [currentPage, setCurrentPage] = useState('login');
   const [userRole, setUserRole] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const handleLoginSuccess = (role) => {
     setUserRole(role);
@@ -16,10 +17,26 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
+    setUserRole('');
     setCurrentPage('login');
   };
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+
+    if (token && role) {
+      setUserRole(role);
+      setCurrentPage('marketplace');
+    } else {
+      setCurrentPage('login');
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
+
     const checkProviderProfile = async () => {
       const token = localStorage.getItem('token');
       const role = localStorage.getItem('role');
@@ -43,7 +60,11 @@ function App() {
     };
 
     checkProviderProfile();
-  }, [currentPage, userRole]);
+  }, [currentPage, userRole, loading]);
+
+  if (loading) {
+    return <div style={{ textAlign: 'center', marginTop: '50px', fontFamily: 'Arial, sans-serif' }}>Se încarcă...</div>;
+  }
 
   return (
     <div>
