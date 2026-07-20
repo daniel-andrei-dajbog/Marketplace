@@ -9,14 +9,14 @@ import DashboardBookings from '../components/DashboardBookings';
 
 function Marketplace({ onLogout }) {
   const [role, setRole] = useState('');
-  const [providerData, setProviderData] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [view, setView] = useState('marketplace'); 
   const [showDropdown, setShowDropdown] = useState(false);
   const [services, setServices] = useState([]);
   const [editingService, setEditingService] = useState(null);
   const [loadingServices, setLoadingServices] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
-  const [showBookingsDashboard, setShowBookingsDashboard] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const fetchServices = async () => {
     const token = localStorage.getItem('token');
@@ -39,39 +39,52 @@ function Marketplace({ onLogout }) {
     }
   };
 
-  useEffect(() => {
-    const userRole = localStorage.getItem('role');
+  const fetchProfile = (isInitialLoad = false) => {
     const token = localStorage.getItem('token');
-    setRole(userRole);
+    if (!token) return;
 
-    if (userRole === 'provider' && token) {
-      fetch('http://127.0.0.1:5000/api/provider/me', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+    setErrorMessage('');
+    
+    fetch('http://127.0.0.1:5000/api/auth/profile', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+      .then((res) => {
+        if (res.ok) return res.json();
+        throw new Error(`Serverul a răspuns cu codul: ${res.status}`);
+      })
+      .then((data) => {
+        setUserData(data);
+        
+        // Deschide automat formularul DOAR dacă e prima încărcare și datele lipsesc complet
+        if (isInitialLoad && (!data.name || !data.oras)) {
+          setView('update-profile');
+        } else if (isInitialLoad) {
+          setView('profile');
         }
       })
-        .then((res) => {
-          if (res.ok) return res.json();
-          throw new Error('Nu s-a putut încărca profilul.');
-        })
-        .then((data) => {
-          setProviderData(data);
-        })
-        .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error(err);
+        setErrorMessage(err.message || 'Nu s-a putut încărca profilul.');
+      });
+  };
 
+  useEffect(() => {
+    const userRole = localStorage.getItem('role');
+    setRole(userRole);
+    fetchProfile(true);
+
+    if (userRole === 'provider') {
       fetchServices();
     }
   }, []);
 
-  const handleProfileUpdated = (newName, newCity) => {
-    setProviderData((prev) => ({
-      ...prev,
-      nume: newName,
-      oras: newCity
-    }));
-    setIsEditing(false);
+  const handleProfileUpdated = () => {
+    fetchProfile(false);
+    setView('profile');
   };
 
   const handleServiceUpdated = () => {
@@ -82,117 +95,166 @@ function Marketplace({ onLogout }) {
   return (
     <div style={styles.container}>
       <header style={styles.header}>
-        <div style={styles.logo}>Marketplace SPA</div>
-
-        <div style={styles.navLinks}>
-          <button
-            onClick={() => setShowBookingsDashboard(!showBookingsDashboard)}
-            style={styles.navButton}
-          >
-            {showBookingsDashboard ? 'Vezi Servicii' : 'Gestionare Rezervări'}
-          </button>
-        </div>
+        <div style={styles.logo} onClick={() => setView('marketplace')}>Marketplace SPA</div>
 
         <div style={styles.headerRight}>
-          {role === 'provider' && providerData ? (
-            <div style={styles.profileArea}>
-              <button
-                onClick={() => setShowDropdown(!showDropdown)}
-                style={styles.profileButton}
-              >
-                {providerData.nume} ({providerData.oras})
-              </button>
+          <div style={styles.profileArea}>
+            <button
+              onClick={() => setShowDropdown(!showDropdown)}
+              style={styles.profileButton}
+            >
+              Profilul meu ▾
+            </button>
 
-              {showDropdown && (
-                <div style={styles.dropdown}>
+            {showDropdown && (
+              <div style={styles.dropdown}>
+                <button
+                  onClick={() => {
+                    setView('profile');
+                    setShowDropdown(false);
+                    if (!userData) fetchProfile(false);
+                  }}
+                  style={styles.dropdownItem}
+                >
+                  Vezi Profil
+                </button>
+                <button
+                  onClick={() => {
+                    setView('update-profile');
+                    setShowDropdown(false);
+                    if (!userData) fetchProfile(false);
+                  }}
+                  style={styles.dropdownItem}
+                >
+                  Actualizare date
+                </button>
+                {role === 'provider' && (
                   <button
                     onClick={() => {
-                      setIsEditing(true);
+                      setView('add-service');
                       setShowDropdown(false);
                     }}
                     style={styles.dropdownItem}
                   >
-                    Actualizare date
+                    Adaugă Serviciu
                   </button>
-                  <button
-                    onClick={onLogout}
-                    style={{ ...styles.dropdownItem, color: '#DC3545' }}
-                  >
-                    Deconectare
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <button onClick={onLogout} style={styles.logoutButton}>Deconectare</button>
-          )}
+                )}
+                <button
+                  onClick={onLogout}
+                  style={{ ...styles.dropdownItem, color: '#DC3545' }}
+                >
+                  Deconectare
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
       <main style={styles.mainContent}>
-        {isEditing ? (
+        {errorMessage && (
+          <div style={{ padding: '20px', background: '#F8D7DA', color: '#721C24', borderRadius: '4px', marginBottom: '20px' }}>
+            <strong>Eroare la încărcare:</strong> {errorMessage}
+          </div>
+        )}
+
+        {view === 'update-profile' && (
           <div>
-            <UpdateProfile
-              currentName={providerData?.nume}
-              currentCity={providerData?.oras}
-              onProfileUpdated={handleProfileUpdated}
-              onCancel={() => setIsEditing(false)}
-            />
+            {userData ? (
+              <UpdateProfile
+                currentName={userData.name}
+                currentCity={userData.oras || userData.city || ''}
+                onProfileUpdated={handleProfileUpdated}
+                onCancel={() => setView('profile')}
+              />
+            ) : (
+              <p>Se încarcă datele pentru actualizare...</p>
+            )}
           </div>
-        ) : showBookingsDashboard ? (
+        )}
+
+        {view === 'add-service' && role === 'provider' && (
           <div style={styles.welcomeBox}>
-            <DashboardBookings />
+            {editingService ? (
+              <UpdateService
+                service={editingService}
+                onServiceUpdated={handleServiceUpdated}
+                onCancel={() => setEditingService(null)}
+              />
+            ) : (
+              <CreateService onServiceAdded={() => { fetchServices(); setView('profile'); }} />
+            )}
           </div>
-        ) : (
+        )}
+
+        {view === 'profile' && (
+          <div style={styles.welcomeBox}>
+            {userData ? (
+              role === 'client' ? (
+                <div>
+                  <h1>Profil Client</h1>
+                  <div style={styles.infoCard}>
+                    <p><strong>Nume Complet:</strong> {userData.name || 'Necompletat'}</p>
+                    <p><strong>Oraș Rezidență:</strong> {userData.oras || userData.city || 'Necompletat'}</p>
+                    <p><strong>Rol platformă:</strong> CLIENT</p>
+                    <p style={styles.balanceText}><strong>Sold Portofel:</strong> {userData.wallet_balance} RON</p>
+                  </div>
+
+                  <hr style={styles.divider} />
+
+                  <div style={styles.servicesSection}>
+                    <h2>Istoric Rezervări Active</h2>
+                    <DashboardBookings />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <h1>Profil Furnizor</h1>
+                  <div style={styles.infoCard}>
+                    <p><strong>Nume Brand / Companie:</strong> {userData.name || 'Necompletat'}</p>
+                    <p><strong>Oraș afacere:</strong> {userData.oras || userData.city || 'Necompletat'}</p>
+                    <p><strong>Rol platformă:</strong> PROVIDER</p>
+                    <p style={styles.balanceText}><strong>Sold Portofel:</strong> {userData.wallet_balance} RON</p>
+                  </div>
+
+                  <hr style={styles.divider} />
+
+                  <div style={styles.servicesSection}>
+                    <h2>Serviciile și Programările mele</h2>
+                    <div style={styles.servicesGrid}>
+                      <div style={styles.servicesColumn}>
+                        {loadingServices ? (
+                          <p>Se încarcă serviciile...</p>
+                        ) : (
+                          <GetServices
+                            services={services}
+                            onRefresh={fetchServices}
+                            onEditSelect={(service) => { setEditingService(service); setView('add-service'); }}
+                          />
+                        )}
+                      </div>
+                      <div style={styles.servicesColumn}>
+                        <DashboardBookings />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            ) : (
+              <p>Se încarcă profilul de pe server...</p>
+            )}
+          </div>
+        )}
+
+        {view === 'marketplace' && (
           <div>
             <div style={styles.welcomeBox}>
               <h1>Bine ai venit pe Marketplace!</h1>
-              <p>Ești conectat cu rolul de: <strong>{role ? role.toUpperCase() : 'Vizitator'}</strong></p>
-
-              {role === 'provider' && providerData && (
-                <div style={styles.infoCard}>
-                  <h3>Profilul tău de furnizor activează în:</h3>
-                  <p><strong>Nume Brand:</strong> {providerData.nume}</p>
-                  <p><strong>Oraș:</strong> {providerData.oras}</p>
-                </div>
-              )}
-
+              <p>Explorează toate serviciile disponibile în platformă.</p>
               <div style={{ marginTop: '30px', backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <GetAllServices onBookingSelect={(id, title) => setSelectedService({ id, title })}
-                  myServices={services}
-                />
+                <GetAllServices onBookingSelect={(id, title) => setSelectedService({ id, title })} myServices={services} />
               </div>
             </div>
-
-            {role === 'provider' && (
-              <div style={styles.servicesSection}>
-                <div style={styles.servicesGrid}>
-                  <div style={styles.servicesColumn}>
-                    {editingService ? (
-                      <UpdateService
-                        service={editingService}
-                        onServiceUpdated={handleServiceUpdated}
-                        onCancel={() => setEditingService(null)}
-                      />
-                    ) : (
-                      <CreateService onServiceAdded={fetchServices} />
-                    )}
-                  </div>
-
-                  <div style={styles.servicesColumn}>
-                    {loadingServices ? (
-                      <p>Se încarcă serviciile...</p>
-                    ) : (
-                      <GetServices
-                        services={services}
-                        onRefresh={fetchServices}
-                        onEditSelect={(service) => setEditingService(service)}
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </main>
@@ -209,127 +271,22 @@ function Marketplace({ onLogout }) {
 }
 
 const styles = {
-  container: {
-    fontFamily: 'Arial, sans-serif',
-    minHeight: '100vh',
-    backgroundColor: '#F8F9FA'
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '15px 30px',
-    backgroundColor: '#343A40',
-    color: 'white',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-  },
-  logo: {
-    fontSize: '20px',
-    fontWeight: 'bold',
-    color: '#fff'
-  },
-  navLinks: {
-    display: 'flex',
-    gap: '15px'
-  },
-  navButton: {
-    background: '#6C757D',
-    color: 'white',
-    border: 'none',
-    padding: '8px 16px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-    fontSize: '14px'
-  },
-  headerRight: {
-    position: 'relative'
-  },
-  profileArea: {
-    position: 'relative'
-  },
-  profileButton: {
-    background: '#007BFF',
-    color: 'white',
-    border: 'none',
-    padding: '8px 16px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-    fontSize: '14px'
-  },
-  dropdown: {
-    position: 'absolute',
-    right: 0,
-    top: '35px',
-    backgroundColor: 'white',
-    border: '1px solid #ccc',
-    borderRadius: '4px',
-    boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
-    width: '180px',
-    zIndex: 1000,
-    display: 'flex',
-    flexDirection: 'column'
-  },
-  dropdownItem: {
-    background: 'none',
-    border: 'none',
-    padding: '10px 15px',
-    textAlign: 'left',
-    width: '100%',
-    cursor: 'pointer',
-    fontSize: '14px',
-    color: '#333',
-    borderBottom: '1px solid #f1f1f1'
-  },
-  logoutButton: {
-    background: '#DC3545',
-    color: 'white',
-    border: 'none',
-    padding: '8px 16px',
-    borderRadius: '4px',
-    cursor: 'pointer'
-  },
-  mainContent: {
-    padding: '40px 20px',
-    maxWidth: '1200px',
-    margin: '0 auto'
-  },
-  welcomeBox: {
-    textAlign: 'center',
-    background: 'white',
-    padding: '30px',
-    borderRadius: '8px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-    marginBottom: '30px'
-  },
-  infoCard: {
-    marginTop: '20px',
-    padding: '20px',
-    border: '1px solid #E2E8F0',
-    borderRadius: '6px',
-    backgroundColor: '#F1F5F9',
-    textAlign: 'left',
-    display: 'inline-block',
-    minWidth: '300px'
-  },
-  servicesSection: {
-    marginTop: '30px'
-  },
-  servicesGrid: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '30px',
-    justifyContent: 'space-between'
-  },
-  servicesColumn: {
-    flex: '1 1 450px',
-    minWidth: '320px',
-    backgroundColor: 'white',
-    padding: '20px',
-    borderRadius: '8px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-  }
+  container: { fontFamily: 'Arial, sans-serif', minHeight: '100vh', backgroundColor: '#F8F9FA' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 30px', backgroundColor: '#343A40', color: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
+  logo: { fontSize: '20px', fontWeight: 'bold', color: '#fff', cursor: 'pointer' },
+  headerRight: { position: 'relative' },
+  profileArea: { position: 'relative' },
+  profileButton: { background: '#007BFF', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' },
+  dropdown: { position: 'absolute', right: 0, top: '35px', backgroundColor: 'white', border: '1px solid #ccc', borderRadius: '4px', boxShadow: '0 4px 8px rgba(0,0,0,0.15)', width: '180px', zIndex: 1000, display: 'flex', flexDirection: 'column' },
+  dropdownItem: { background: 'none', border: 'none', padding: '10px 15px', textAlign: 'left', width: '100%', cursor: 'pointer', fontSize: '14px', color: '#333', borderBottom: '1px solid #f1f1f1' },
+  mainContent: { padding: '40px 20px', maxWidth: '1200px', margin: '0 auto' },
+  welcomeBox: { background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '30px' },
+  infoCard: { marginTop: '20px', padding: '20px', border: '1px solid #E2E8F0', borderRadius: '6px', backgroundColor: '#F1F5F9', textAlign: 'left', display: 'inline-block', minWidth: '300px' },
+  balanceText: { fontSize: '16px', color: '#28A745', marginTop: '10px' },
+  divider: { margin: '30px 0', border: '0', borderTop: '1px solid #E2E8F0' },
+  servicesSection: { marginTop: '30px' },
+  servicesGrid: { display: 'flex', flexWrap: 'wrap', gap: '30px', justifyContent: 'space-between' },
+  servicesColumn: { flex: '1 1 450px', minWidth: '320px', backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }
 };
 
 export default Marketplace;

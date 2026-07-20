@@ -224,7 +224,7 @@ function DashboardBookings() {
 }
 
 const styles = {
-  container: { padding: '20px', fontFamily: 'Arial, sans-serif', maxWidth: '600px', margin: '0 auto' },
+  container: { padding: '20px', fontFamily: 'Arial, sans-serif', width: '100%', margin: '0 auto' },
   headerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
   configToggleBtn: { padding: '8px 15px', background: '#17A2B8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' },
   list: { display: 'flex', flexDirection: 'column', gap: '10px' },

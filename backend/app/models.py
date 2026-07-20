@@ -1,5 +1,6 @@
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -50,3 +51,13 @@ class ServiceAvailability(db.Model):
     start_time = db.Column(db.Time, nullable = False)
     end_time = db.Column(db.Time, nullable = False)
     service_id = db.Column(db.Integer, db.ForeignKey('services.id'), nullable = False)
+
+class UserProfile(db.Model):
+    __tablename__ = 'user_profiles'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, unique=True)
+    name = db.Column(db.String(100), nullable=False, default='')
+    oras = db.Column(db.String(100), nullable=False, default='')
+    wallet_balance = db.Column(db.Numeric(10, 2), default=500.00)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref=db.backref('profile', uselist=False, cascade="all, delete"))
