@@ -32,5 +32,13 @@ export const bookingService = {
       body: JSON.stringify({ status })
     });
     return response.json();
+  },
+
+  getProviderServices: async () => {
+    const response = await fetch("http://127.0.0.1:5000/api/services/me", {
+      method: "GET",
+      headers: getHeaders()
+    });
+    return response.json();
   }
 };

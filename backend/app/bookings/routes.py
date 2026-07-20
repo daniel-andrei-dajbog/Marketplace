@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from app.bookings import booking_bp  
-from app.models import User, Booking, Service, Provider
+from app.models import User, Booking, Service, Provider, ServiceAvailability
 from app import db
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
@@ -144,3 +144,94 @@ def get_provider_bookings():
         })
 
     return jsonify(booking_list), 200
+
+@booking_bp.route('/available-slots', methods=['GET'])
+def get_available_slots():
+    service_id = request.args.get('service_id', type=int)
+    date_str = request.args.get('date')
+    
+    if not service_id or not date_str:
+        return jsonify({'message': 'Lipsesc parametrii service_id sau date'}), 400
+        
+    service = Service.query.get_or_404(service_id)
+    
+    chosen_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    
+    day_of_the_week = chosen_date.weekday() 
+
+    availability = ServiceAvailability.query.filter_by(
+        service_id=service_id, 
+        day_of_week=day_of_the_week
+    ).first()
+    
+    if not availability:
+        return jsonify([]), 200 
+
+    existing_bookings = Booking.query.filter_by(
+        service_id=service_id, 
+        date=chosen_date
+    ).filter(Booking.status.in_(['pending', 'confirmed'])).all()
+
+    slots = []
+    
+    current_time_dt = datetime.combine(chosen_date, availability.start_time)
+    end_work_dt = datetime.combine(chosen_date, availability.end_time)
+
+    while current_time_dt + timedelta(minutes=60) <= end_work_dt:
+        slot_start = current_time_dt.time()
+        slot_end = (current_time_dt + timedelta(minutes=60)).time()
+
+        is_overlapping = False
+        for booking in existing_bookings:
+            if slot_start < booking.end_time and slot_end > booking.start_time:
+                is_overlapping = True
+                break
+
+        if not is_overlapping:
+            slots.append(slot_start.strftime('%H:%M'))
+
+        current_time_dt += timedelta(minutes=60)
+
+    return jsonify(slots), 200
+
+@booking_bp.route('/set-availability/<int:service_id>', methods=['POST'])
+@jwt_required()
+def set_availability(service_id):
+    data = request.get_json() 
+    current_user_id = get_jwt_identity()
+
+    service = Service.query.get_or_404(service_id)
+    provider = Provider.query.filter_by(user_id=current_user_id).first()
+    
+    if not provider or service.provider_id != provider.id:
+        return jsonify({'message': 'Nu ai permisiunea de a modifica acest serviciu'}), 403
+
+    try:
+        for item in data:
+            day = item.get('day_of_week')
+            start_str = item.get('start_time')
+            end_str = item.get('end_time')
+
+            start_time = datetime.strptime(start_str, '%H:%M').time()
+            end_time = datetime.strptime(end_str, '%H:%M').time()
+
+            existing = ServiceAvailability.query.filter_by(service_id=service_id, day_of_week=day).first()
+
+            if existing:
+                existing.start_time = start_time
+                existing.end_time = end_time
+            else:
+                new_avail = ServiceAvailability(
+                    service_id=service_id,
+                    day_of_week=day,
+                    start_time=start_time,
+                    end_time=end_time
+                )
+                db.session.add(new_avail)
+
+        db.session.commit()
+        return jsonify({'message': 'Programul de lucru a fost salvat cu succes!'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': f'Eroare la salvarea programului: {str(e)}'}), 400

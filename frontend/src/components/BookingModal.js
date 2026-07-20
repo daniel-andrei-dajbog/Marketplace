@@ -1,14 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { bookingService } from './services/BookingService';
 
 function BookingModal({ serviceId, serviceTitle, onClose }) {
   const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('');
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (!date) {
+      setAvailableSlots([]);
+      return;
+    }
+
+    setLoadingSlots(true);
+    setStartTime('');
+    setMessage('');
+
+    const token = localStorage.getItem('token');
+    fetch(`http://127.0.0.1:5000/api/bookings/available-slots?service_id=${serviceId}&date=${date}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then((slots) => {
+        setAvailableSlots(slots);
+      })
+      .catch(() => {
+        setMessage('Eroare: Nu s-au putut încărca intervalele orare.');
+      })
+      .finally(() => {
+        setLoadingSlots(false);
+      });
+  }, [date, serviceId]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!date || !startTime) {
+      setMessage('Eroare: Selectează data și ora.');
+      return;
+    }
+
     setMessage('');
     setIsSubmitting(true);
 
@@ -43,22 +83,37 @@ function BookingModal({ serviceId, serviceTitle, onClose }) {
               type="date" 
               value={date} 
               onChange={(e) => setDate(e.target.value)} 
+              min={new Date().toISOString().split('T')[0]}
               required 
               style={styles.input} 
             />
           </div>
           <div>
             <label style={styles.label}>Ora Început:</label>
-            <input 
-              type="time" 
-              value={startTime} 
-              onChange={(e) => setStartTime(e.target.value)} 
-              required 
-              style={styles.input} 
-            />
+            <select
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              disabled={!date || loadingSlots || availableSlots.length === 0}
+              required
+              style={styles.input}
+            >
+              {loadingSlots && <option>Se încarcă orele disponibile...</option>}
+              {!date && <option value="">-- Alege mai întâi o dată --</option>}
+              {date && !loadingSlots && availableSlots.length === 0 && (
+                <option value="">Nu există ore disponibile pentru această zi</option>
+              )}
+              {date && !loadingSlots && availableSlots.length > 0 && (
+                <>
+                  <option value="">-- Selectează o oră --</option>
+                  {availableSlots.map((slot) => (
+                    <option key={slot} value={slot}>{slot}</option>
+                  ))}
+                </>
+              )}
+            </select>
           </div>
           <div style={styles.actions}>
-            <button type="submit" disabled={isSubmitting} style={styles.button}>
+            <button type="submit" disabled={isSubmitting || !startTime} style={styles.button}>
               {isSubmitting ? 'Se trimite...' : 'Trimite Rezervarea'}
             </button>
             <button type="button" onClick={onClose} style={styles.cancelButton}>
@@ -82,7 +137,7 @@ const styles = {
   container: { padding: '20px', fontFamily: 'Arial, sans-serif', maxWidth: '400px', width: '100%', margin: '0 auto', background: 'white', borderRadius: '4px', boxSizing: 'border-box' },
   form: { display: 'flex', flexDirection: 'column', gap: '15px' },
   label: { display: 'block', marginBottom: '5px', fontWeight: 'bold' },
-  input: { width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' },
+  input: { width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', backgroundColor: 'white' },
   actions: { display: 'flex', gap: '10px', marginTop: '5px' },
   button: { flex: 1, padding: '10px', background: '#007BFF', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' },
   cancelButton: { flex: 1, padding: '10px', background: '#6C757D', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' },

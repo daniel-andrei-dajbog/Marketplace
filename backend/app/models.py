@@ -41,3 +41,12 @@ class Booking(db.Model):
     status = db.Column(db.String(120), nullable = False)
     client_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable = False)
     service_id = db.Column(db.Integer, db.ForeignKey('services.id'), nullable = False)
+
+class ServiceAvailability(db.Model):
+    __tablename__ = 'service_availability'
+
+    id = db.Column(db.Integer, primary_key = True)
+    day_of_week = db.Column(db.Integer, nullable = False)
+    start_time = db.Column(db.Time, nullable = False)
+    end_time = db.Column(db.Time, nullable = False)
+    service_id = db.Column(db.Integer, db.ForeignKey('services.id'), nullable = False)
